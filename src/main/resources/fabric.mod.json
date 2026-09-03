@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "cutil",
+  "version": "${version}",
+  "name": "CUtil",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/cutil/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "mike.cutil.client.CutilClient"
+    ],
+    "main": [
+      "mike.cutil.Cutil"
+    ]
+  },
+  "mixins": [
+    "cutil.mixins.json",
+    {
+      "config": "cutil.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
