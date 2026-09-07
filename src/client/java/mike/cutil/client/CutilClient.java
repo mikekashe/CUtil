@@ -26,8 +26,22 @@ public class CutilClient implements ClientModInitializer {
     private static final String MC_VERSION = "1.21.11";
 
     private static final List<String> REQUESTED_SCOPES = List.of(
+            "hooks.player.enchant_proc:read",
+            "player.cooldowns:read",
+            "player.effects:read",
+            "hooks.player.absorber:read",
+            "hooks.player.command:read",
+            "player.trinkets:read",
+            "player.chat_channel:read",
+            "hooks.bandit.kill:read",
+            "events:read",
+            "player.emblems:read",
+            "player.top_credits:read",
+            "player.satchels:read",
             "gang.messages:read",
-            "gang.pings:read"
+            "gang.pings:read",
+            "server.merchants:read",
+            "server.guards:read"
     );
     private static final List<String> REQUESTED_HOOKS = List.of(
             "gang.chat.message.created",
@@ -70,8 +84,11 @@ public class CutilClient implements ClientModInitializer {
         PayloadTypeRegistry.playS2C().register(CosmicApiRawPayload.ID, CosmicApiRawPayload.CODEC);
 
         ClientPlayNetworking.registerGlobalReceiver(CosmicApiRawPayload.ID, ((payload, context) -> {
-            String json = new String(payload.payloadBytes(), StandardCharsets.UTF_8);
-            context.client().execute(() -> handleServerMessage(context.client(), json));
+            byte[] bytes = payload.payloadBytes();
+            String readable = new String(bytes, StandardCharsets.UTF_8);
+            if (readable.contains("session_denied")) {
+                handleDeny(readable, context);
+            }
         }));
 
         ClientPlayConnectionEvents.JOIN.register(((handler, sender, client) -> {
@@ -109,8 +126,35 @@ public class CutilClient implements ClientModInitializer {
         }
         sendHello();
         connected = true;
-        Text connectedMessage = PREFIX.copy().append(Text.literal("Connected to the CosmicAPI!").formatted(Formatting.GREEN));
+        Text connectedMessage = PREFIX.copy().append(Text.literal("Attempting connection to the CosmicAPI...").formatted(Formatting.YELLOW));
         player.sendMessage(connectedMessage, false);
+    }
+
+    private void handleDeny(String readable, ClientPlayNetworking.Context context) {
+        connected = false;
+        lastConnectionTime = System.currentTimeMillis();
+        int reasonIndex = readable.indexOf("reason");
+        String reason = readable.substring(reasonIndex + "reason".length() + 3);
+        int index = 0;
+        StringBuilder reasonBuilder = new StringBuilder();
+
+        while (Character.isAlphabetic(reason.charAt(index)) || reason.charAt(index) == '_') {
+            reasonBuilder.append(reason.charAt(index));
+            index++;
+        }
+
+        context.player().sendMessage(PREFIX.copy()
+                .append(Text.literal("Session to CosmicAPI denied - reason: " + reasonBuilder)
+                        .formatted(Formatting.RED)), false);
+
+        context.player().sendMessage(PREFIX.copy()
+                .append(Text.literal("Mod Id: " + MOD_ID).formatted(Formatting.RED)), false);
+
+        context.player().sendMessage(PREFIX.copy()
+                .append(Text.literal("Client Id: " + CLIENT_ID).formatted(Formatting.RED)), false);
+
+        context.player().sendMessage(PREFIX.copy()
+                .append(Text.literal("Channel Id: " + CHANNEL_ID.toShortString()).formatted(Formatting.RED)), false);
     }
 
     private void sendHello() {

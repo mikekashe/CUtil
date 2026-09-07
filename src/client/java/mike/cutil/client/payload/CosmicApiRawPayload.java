@@ -11,8 +11,12 @@ public record CosmicApiRawPayload(byte[] payloadBytes) implements CustomPayload 
 
     public static final PacketCodec<PacketByteBuf, CosmicApiRawPayload> CODEC =
             PacketCodec.of(
-                    (value, buf) -> buf.writeByteArray(value.payloadBytes()),
-                    buf -> new CosmicApiRawPayload(buf.readByteArray())
+                    (value, buf) -> buf.writeBytes(value.payloadBytes()),
+                    buf -> {
+                        byte[] remaining = new byte[buf.readableBytes()];
+                        buf.readBytes(remaining);
+                        return new CosmicApiRawPayload(remaining);
+                    }
             );
 
     @Override
